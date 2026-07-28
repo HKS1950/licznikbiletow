@@ -6,12 +6,6 @@ import zoneinfo
 
 st.set_page_config(page_title="Licznik Biletów - Hutnik Kraków", page_icon="🎟️", layout="centered")
 
-st.title("🎟️ Licznik Biletów – Hutnik Kraków")
-st.caption("Oficjalny podgląd wolnych miejsc na stadionie")
-
-# --- POPRAWKA DATY MECZU ---
-st.info("📅 **Najbliższy mecz:** Hutnik Kraków vs. Opponent — **Sobota, 1 sierpnia**")
-
 def naciagnij_czas_relatywny(data_str):
     try:
         strefa_pl = zoneinfo.ZoneInfo("Europe/Warsaw")
@@ -31,6 +25,9 @@ def naciagnij_czas_relatywny(data_str):
     except:
         return ""
 
+# Tytuł i Nagłówek
+st.title("🎟️ Licznik Biletów – Hutnik Kraków")
+
 if os.path.exists("bilety_data.json"):
     with open("bilety_data.json", "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -40,22 +37,25 @@ if os.path.exists("bilety_data.json"):
     ile_temu = naciagnij_czas_relatywny(ostatnia_aktualizacja)
     sektory = data.get("sektory", {})
 
-    st.metric(label="ŁĄCZNIE WOLNYCH BIELETÓW", value=suma)
-    
+    # Główny licznik
+    st.metric(label="ŁĄCZNIE WOLNYCH BILETÓW", value=f"{suma}")
     if ile_temu:
-        st.caption(f"🔄 Ostatnia aktualizacja: **{ostatnia_aktualizacja}** ({ile_temu})")
+        st.caption(f"🔄 Ostatnia aktualizacja: {ostatnia_aktualizacja} ({ile_temu})")
     else:
-        st.caption(f"🔄 Ostatnia aktualizacja: **{ostatnia_aktualizacja}**")
+        st.caption(f"🔄 Ostatnia aktualizacja: {ostatnia_aktualizacja}")
 
     st.markdown("---")
-    st.subheader("Miejsca w poszczególnych sektorach:")
+    st.subheader("Wolne miejsca w sektorach:")
 
+    # Wyświetlanie sektorów w ładnej siatce
     if sektory:
-        cols = st.columns(2)
-        for idx, (sektor, ilosc) in enumerate(sektory.items()):
-            col = cols[idx % 2]
-            col.metric(label=f"Sektor {sektor}", value=ilosc)
+        cols = st.columns(3)
+        idx = 0
+        for sektor, ilosc in sektory.items():
+            with cols[idx % 3]:
+                st.metric(label=f"Sektor {sektor}", value=ilosc)
+            idx += 1
     else:
-        st.write("Brak szczegółowych danych o sektorach.")
+        st.info("Brak danych o poszczególnych sektorach.")
 else:
-    st.warning("Oczekiwanie na pierwsze dane z systemu lokalnego...")
+    st.warning("Oczekiwanie na dane...")

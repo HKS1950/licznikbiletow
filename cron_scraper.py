@@ -16,33 +16,58 @@ def pobierz_i_zapisz():
 
     try:
         with sync_playwright() as p:
+            # Uruchamiamy przeglądarkę z maskowaniem bota
             browser = p.chromium.launch(
                 headless=True,
                 args=[
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--disable-blink-features=AutomationControlled'
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-features=IsolateOrigins,site-per-process'
                 ]
             )
             
-            context_args = {
-                "viewport": {'width': 1920, 'height': 1080},
-                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-            }
+            # Tworzymy kontekst z pełną charakterystyką prawdziwego Chrome z Polski
+            context = browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                locale="pl-PL",
+                timezone_id="Europe/Warsaw",
+                extra_http_headers={
+                    'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+                    'Sec-Ch-Ua-Mobile': '?0',
+                    'Sec-Ch-Ua-Platform': '"Windows"',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1'
+                }
+            )
 
             if os.path.exists("state.json"):
-                context_args["storage_state"] = "state.json"
+                # Wczytujemy ciasteczka z sesji jeśli istnieją
+                with open("state.json", "r", encoding="utf-8") as f:
+                    state = json.load(f)
+                    context.add_cookies(state.get("cookies", []))
 
-            context = browser.new_context(**context_args)
             page = context.new_page()
-            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
+            # Ukrywamy fakt używania Selenium/Playwrighta
+            page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'languages', {get: () => ['pl-PL', 'pl', 'en-US', 'en']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            """)
 
             print("Łączenie ze stroną biletową...")
-            page.goto(EVENT_URL, wait_until="networkidle", timeout=60000)
+            page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=60000)
             time.sleep(10)
 
-            # Zapisujemy zrzut ekranu do weryfikacji
+            # Zapisujemy zrzut ekranu do weryfikacji czy 403 zniknęło
             page.screenshot(path="podglad_strony.png", full_page=True)
 
             surowy_tekst = page.locator('body').inner_text()

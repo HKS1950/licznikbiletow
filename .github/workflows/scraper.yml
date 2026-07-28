@@ -1,0 +1,35 @@
+name: Bilet Scraper
+
+on:
+  schedule:
+    # Uruchamiaj automatycznie co 10 minut
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Pozwala uruchomić ręcznie z zakładki Actions
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz kod repozytorium
+        uses: actions/checkout@v3
+
+      - name: Skonfiguruj Pythona
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Zainstaluj biblioteki i Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install chromium
+
+      - name: Uruchom scraper
+        run: python cron_scraper.py
+
+      - name: Zapisz zaktualizowane dane w repozytorium
+        run: |
+          git config --global user.name 'GitHub Action Bot'
+          git config --global user.email 'action@github.com'
+          git add bilety_data.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update danych o biletach" && git push)

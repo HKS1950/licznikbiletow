@@ -20,7 +20,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 1. KARTA MECZU (GÓRNA)
+# 1. KARTA MECZU (GÓRNA) Z TWÓIM LOGO Z GITHUBA
 st.markdown("""
     <div style="
         background-color: #ffffff;
@@ -33,7 +33,7 @@ st.markdown("""
         margin-bottom: 25px;
     ">
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
-            <img src="https://bilety.hutnikkrakow.com/documents/20121/0/logo_hutnik.png" width="38" style="vertical-align: middle;">
+            <img src="https://raw.githubusercontent.com/HKS1950/licznikbiletow/main/logo.png" width="42" style="vertical-align: middle;">
             <span style="font-size: 24px; font-weight: 800; color: #0056b3;">Hutnik Kraków vs Świt Szczecin</span>
         </div>
         <div style="font-size: 16px; color: #555555; font-weight: 500;">
@@ -55,7 +55,7 @@ if os.path.exists("bilety_data.json"):
     except Exception:
         pass
 
-# 2. GLÓWNY NIEBIESKI BANER LICZNIKA
+# 2. GŁÓWNY NIEBIESKI BANER LICZNIKA
 st.markdown(f"""
     <div style="
         background-color: #0066cc;

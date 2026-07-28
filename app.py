@@ -119,7 +119,7 @@ st.markdown("""
 st.markdown(f"""
     <div class="match-box">
         <div class="match-teams">{logo_html} Hutnik Kraków vs Świt Szczecin</div>
-        <div class="match-details">📅 Sobota, 2 sierpnia 2026 r. | ⏰ godz. 17:00</div>
+        <div class="match-details">📅 Sobota, 1 sierpnia 2026 r. | ⏰ godz. 17:00</div>
     </div>
 """, unsafe_allow_html=True)
 

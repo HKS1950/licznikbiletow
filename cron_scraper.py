@@ -1,89 +1,94 @@
-from playwright.sync_api import sync_playwright
+import requests
+from bs4 import BeautifulSoup
 from datetime import datetime
 import zoneinfo
 import json
-import time
 import re
 import os
 import sys
 
-EVENT_URL = "https://bilety.hutnikkrakow.com/zakup?p_p_id=com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_mvcRenderCommandName=%2Fticket%2Fselect%2Fseats&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_eventId=45705&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_backURL=%2Flista-wydarzen"
+# ---------------------------------------------------------
+API_KEY = "4865682d6d2dcad82d3580c3187e1fca"
+# ---------------------------------------------------------
+
+TARGET_URL = "https://bilety.hutnikkrakow.com/zakup?p_p_id=com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_mvcRenderCommandName=%2Fticket%2Fselect%2Fseats&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_eventId=45705&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_backURL=%2Flista-wydarzen"
+
+def przygotuj_ciasteczka_z_json():
+    """Konwertuje ciasteczka z pliku state.json na format nagłówka HTTP"""
+    if not os.path.exists("state.json"):
+        print("⚠️ Brak pliku state.json!")
+        return ""
+    
+    try:
+        with open("state.json", "r", encoding="utf-8") as f:
+            state = json.load(f)
+            cookies_list = state.get("cookies", [])
+            # Łączymy ciasteczka w format: "nazwa1=wartosc1; nazwa2=wartosc2"
+            cookie_string = "; ".join([f"{c['name']}={c['value']}" for c in cookies_list])
+            return cookie_string
+    except Exception as e:
+        print(f"⚠️ Błąd odczytu state.json: {e}")
+        return ""
 
 def pobierz_i_zapisz():
     strefa_pl = zoneinfo.ZoneInfo("Europe/Warsaw")
     teraz = datetime.now(strefa_pl).strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{teraz}] Rozpoczynanie pobierania danych w chmurze...")
+    print(f"[{teraz}] Pobieranie danych przez ScraperAPI...")
 
-    if not os.path.exists("state.json"):
-        print("❌ BŁĄD: Brak pliku state.json w repozytorium!")
-        sys.exit(1)
+    cookie_header = przygotuj_ciasteczka_z_json()
+    
+    # Przekazujemy nagłówek Cookie do ScraperAPI
+    headers = {
+        "Cookie": cookie_header
+    } if cookie_header else {}
+
+    # keep_headers=true nakazuje ScraperAPI przekazać nasze ciasteczka do serwera Hutnika
+    proxy_url = f"http://api.scraperapi.com?api_key={API_KEY}&url={TARGET_URL}&render=true&keep_headers=true"
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-blink-features=AutomationControlled'
-                ]
-            )
-            
-            # Wczytujemy sesję z pliku state.json
-            context = browser.new_context(
-                storage_state="state.json",
-                viewport={'width': 1920, 'height': 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-                locale="pl-PL"
-            )
+        response = requests.get(proxy_url, headers=headers, timeout=120)
+        
+        if response.status_code != 200:
+            print(f"❌ Kod błędu serwera: {response.status_code}")
+            sys.exit(1)
 
-            page = context.new_page()
-            
-            # Maskujemy automatyzację (omijanie 403)
-            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        surowy_tekst = soup.get_text()
 
-            print("Łączenie ze stroną biletową...")
-            page.goto(EVENT_URL, wait_until="networkidle", timeout=60000)
-            time.sleep(6)
+        # Zabezpieczenie przed zliczaniem ekranu logowania
+        if "LICZBA WOLNYCH MIEJSC W SEKTORACH:" not in surowy_tekst:
+            print("⚠️ BŁĄD: ScraperAPI załadowało stronę logowania lub wygasła sesja w state.json.")
+            sys.exit(1)
 
-            surowy_tekst = page.locator('body').inner_text()
+        sektory_blok = surowy_tekst.split("LICZBA WOLNYCH MIEJSC W SEKTORACH:")[1]
+        sektory_blok = sektory_blok.split("Wybierz miejsca")[0].split("Oficjalny serwis")[0]
 
-            # Zabezpieczenie przed zliczaniem błędu logowania
-            if "LICZBA WOLNYCH MIEJSC W SEKTORACH:" not in surowy_tekst:
-                print("⚠️ BŁĄD: Nie znaleziono sekcji biletów! Sesja w state.json mogła wygasnąć.")
-                sys.exit(1)
+        linie = [l.strip() for l in sektory_blok.split('\n') if l.strip()]
+        pelny_string = " ".join(linie)
 
-            sektory_blok = surowy_tekst.split("LICZBA WOLNYCH MIEJSC W SEKTORACH:")[1]
-            sektory_blok = sektory_blok.split("Wybierz miejsca")[0].split("Oficjalny serwis")[0]
+        pary = re.findall(r'([A-Za-z0-9ĄĆĘŁŃÓŚŹŻąćęłńóśźż]+)\s+(\d+)', pelny_string)
 
-            linie = [l.strip() for l in sektory_blok.split('\n') if l.strip()]
-            pelny_string = " ".join(linie)
+        suma_wolnych = 0
+        unikalne_sektory = {}
 
-            pary = re.findall(r'([A-Za-z0-9ĄĆĘŁŃÓŚŹŻąćęłńóśźż]+)\s+(\d+)', pelny_string)
+        for nazwa, liczba in pary:
+            if nazwa.lower() not in ['miejsc', 'sektorach', 'w', 'liczba', 'wolnych', 'zaloguj', 'rejestracja']:
+                miejsca = int(liczba)
+                unikalne_sektory[nazwa] = miejsca
 
-            suma_wolnych = 0
-            unikalne_sektory = {}
+        for wolne in unikalne_sektory.values():
+            suma_wolnych += wolne
 
-            for nazwa, liczba in pary:
-                if nazwa.lower() not in ['miejsc', 'sektorach', 'w', 'liczba', 'wolnych', 'zaloguj']:
-                    miejsca = int(liczba)
-                    unikalne_sektory[nazwa] = miejsca
+        wynik = {
+            "ostatnia_aktualizacja": teraz,
+            "suma_wolnych": suma_wolnych,
+            "sektory": unikalne_sektory
+        }
 
-            for wolne in unikalne_sektory.values():
-                suma_wolnych += wolne
+        with open("bilety_data.json", "w", encoding="utf-8") as f:
+            json.dump(wynik, f, ensure_ascii=False, indent=2)
 
-            wynik = {
-                "ostatnia_aktualizacja": teraz,
-                "suma_wolnych": suma_wolnych,
-                "sektory": unikalne_sektory
-            }
-
-            with open("bilety_data.json", "w", encoding="utf-8") as f:
-                json.dump(wynik, f, ensure_ascii=False, indent=2)
-
-            print(f"✅ Zapisano poprawny wynik: {suma_wolnych} biletów o {teraz}")
-            browser.close()
+        print(f"✅ SUKCES! Pobrano poprawnie wolnych biletów: {suma_wolnych}")
 
     except Exception as e:
         print(f"❌ BŁĄD: {e}")

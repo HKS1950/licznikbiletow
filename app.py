@@ -37,7 +37,7 @@ st.markdown("""
             <span style="font-size: 24px; font-weight: 800; color: #0056b3;">Hutnik Kraków vs Świt Szczecin</span>
         </div>
         <div style="font-size: 16px; color: #555555; font-weight: 500;">
-            🗓️ Sobota, 2 sierpnia 2026 r. | ⏰ godz. 17:00
+            🗓️ Sobota, 1 sierpnia 2026 r. | ⏰ godz. 17:00
         </div>
     </div>
 """, unsafe_allow_html=True)

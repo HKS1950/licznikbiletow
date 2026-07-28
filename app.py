@@ -81,7 +81,3 @@ st.markdown(f"""
         🕒 Ostatnia synchronizacja danych: <b>{ostatnia_aktualizacja}</b>
     </div>
 """, unsafe_allow_html=True)
-
-# 4. PRZYCISK ODŚWIEŻANIA
-if st.button("🔄 Odśwież stan biletów"):
-    st.rerun()

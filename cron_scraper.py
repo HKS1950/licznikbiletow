@@ -10,7 +10,6 @@ import sys
 EVENT_URL = "https://bilety.hutnikkrakow.com/zakup?p_p_id=com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_mvcRenderCommandName=%2Fticket%2Fselect%2Fseats&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_eventId=45705&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_backURL=%2Flista-wydarzen"
 
 def pobierz_i_zapisz():
-    # Pobieranie czasu w polskiej strefie czasowej (Europe/Warsaw)
     strefa_pl = zoneinfo.ZoneInfo("Europe/Warsaw")
     teraz = datetime.now(strefa_pl).strftime('%Y-%m-%d %H:%M:%S')
     print(f"[{teraz}] Rozpoczynanie pobierania danych...")
@@ -27,7 +26,6 @@ def pobierz_i_zapisz():
                 ]
             )
             
-            # Podszywanie się pod zwykłego Chrome na Windowsie
             context_args = {
                 "viewport": {'width': 1920, 'height': 1080},
                 "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -35,7 +33,6 @@ def pobierz_i_zapisz():
 
             if os.path.exists("state.json"):
                 context_args["storage_state"] = "state.json"
-                print("Wczytano plik sesji state.json")
 
             context = browser.new_context(**context_args)
             page = context.new_page()
@@ -43,9 +40,10 @@ def pobierz_i_zapisz():
 
             print("Łączenie ze stroną biletową...")
             page.goto(EVENT_URL, wait_until="networkidle", timeout=60000)
-            
-            # Dodatkowe odczekanie na wyrenderowanie liczb w JavaScript
             time.sleep(10)
+
+            # Zapisujemy zrzut ekranu do weryfikacji
+            page.screenshot(path="podglad_strony.png", full_page=True)
 
             surowy_tekst = page.locator('body').inner_text()
 
@@ -71,11 +69,6 @@ def pobierz_i_zapisz():
             for wolne in unikalne_sektory.values():
                 suma_wolnych += wolne
 
-            # Jeśli z jakiegoś powodu wyszło 0, wypiszmy surowy tekst w logach do analizy
-            if suma_wolnych == 0:
-                print("⚠️ Ostrzeżenie: Wykryto 0 biletów. Poniżej fragmencik pobranego tekstu:")
-                print(surowy_tekst[:500])
-
             wynik = {
                 "ostatnia_aktualizacja": teraz,
                 "suma_wolnych": suma_wolnych,
@@ -85,11 +78,11 @@ def pobierz_i_zapisz():
             with open("bilety_data.json", "w", encoding="utf-8") as f:
                 json.dump(wynik, f, ensure_ascii=False, indent=2)
 
-            print(f"✅ SUKCES! Zapisano wolnych miejsc: {suma_wolnych} o godzinie {teraz}")
+            print(f"✅ Zapisano wynik: {suma_wolnych} biletów o {teraz}")
             browser.close()
 
     except Exception as e:
-        print(f"❌ BŁĄD PODCZAS SCRAPOWANIA: {e}")
+        print(f"❌ BŁĄD: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

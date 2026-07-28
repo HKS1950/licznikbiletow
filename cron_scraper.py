@@ -3,40 +3,36 @@ from datetime import datetime
 import json
 import time
 import re
+import os
 
 EVENT_URL = "https://bilety.hutnikkrakow.com/zakup?p_p_id=com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_mvcRenderCommandName=%2Fticket%2Fselect%2Fseats&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_eventId=45705&_com_stellis_ticketing_ticket_sale_TicketSaleWebPortlet_backURL=%2Flista-wydarzen"
 
 def pobierz_i_zapisz():
     teraz = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{teraz}] Rozpoczynanie pobierania danych...")
+    print(f"[{teraz}] Rozpoczynanie pobierania danych w chmurze...")
 
     with sync_playwright() as p:
+        # Konfiguracja bezpieczna dla headless Ubuntu w GitHub Actions
         browser = p.chromium.launch(
             headless=True,
-            args=['--disable-blink-features=AutomationControlled', '--start-maximized']
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
         )
         
-        try:
-            context = browser.new_context(storage_state="state.json", viewport={'width': 1920, 'height': 1080})
-        except Exception as e:
-            print(f"Błąd sesji: {e}")
-            browser.close()
-            return
+        # Sprawdzamy czy plik sesji istnieje
+        context_args = {"viewport": {'width': 1920, 'height': 1080}}
+        if os.path.exists("state.json"):
+            context_args["storage_state"] = "state.json"
+            print("Wczytano state.json")
+        else:
+            print("Ostrzeżenie: brak state.json, próba otwarcia bez sesji...")
 
+        context = browser.new_context(**context_args)
         page = context.new_page()
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-        page.goto(EVENT_URL, wait_until="domcontentloaded")
+        print("Łączenie ze stroną biletową...")
+        page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=60000)
         time.sleep(7)
-
-        # Pobieramy nagłówek/tytuł meczu bezpośrednio ze strony
-        nazwa_meczu = "Hutnik Kraków"
-        try:
-            naglowek = page.locator('.event-title, h1, h2, .event-name').first.inner_text()
-            if naglowek:
-                nazwa_meczu = naglowek.strip()
-        except Exception:
-            pass
 
         surowy_tekst = page.locator('body').inner_text()
 
@@ -64,7 +60,6 @@ def pobierz_i_zapisz():
 
         wynik = {
             "ostatnia_aktualizacja": teraz,
-            "nazwa_meczu": nazwa_meczu,
             "suma_wolnych": suma_wolnych,
             "sektory": unikalne_sektory
         }
@@ -72,7 +67,7 @@ def pobierz_i_zapisz():
         with open("bilety_data.json", "w", encoding="utf-8") as f:
             json.dump(wynik, f, ensure_ascii=False, indent=2)
 
-        print(f" Zapisano! Mecz: {nazwa_meczu} | Liczba wolnych miejsc: {suma_wolnych}")
+        print(f" Sukces! Zapisano wolnych miejsc: {suma_wolnych}")
         browser.close()
 
 if __name__ == "__main__":

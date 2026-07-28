@@ -1,5 +1,8 @@
 {
-  "ostatnia_aktualizacja": "2026-07-28 23:31:46",
-  "suma_wolnych": 0,
-  "sektory": {}
+  "ostatnia_aktualizacja": "2026-07-28 23:36:11",
+  "suma_wolnych": 35,
+  "sektory": {
+    "Ptaszyckiego": 4,
+    "a": 31
+  }
 }

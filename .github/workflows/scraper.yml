@@ -28,9 +28,10 @@ jobs:
         run: |
           xvfb-run python cron_scraper.py
 
-      - name: Zapisz zaktualizowane dane w repozytorium
+      - name: Zapisz zaktualizowane dane i zrzut ekranu w repozytorium
         run: |
           git config --global user.name 'GitHub Action Bot'
           git config --global user.email 'action@github.com'
-          git add bilety_data.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update danych o biletach" && git push)
+          git add bilety_data.json podglad_strony.png
+          git commit -m "Auto-update danych o biletach" || echo "Brak zmian"
+          git push

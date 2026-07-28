@@ -15,7 +15,14 @@ def pobierz_i_zapisz():
         # Konfiguracja bezpieczna dla headless Ubuntu w GitHub Actions
         browser = p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
+            args=[
+                '--headless=new',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-blink-features=AutomationControlled'
+            ]
         )
         
         # Sprawdzamy czy plik sesji istnieje

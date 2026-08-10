@@ -1,7 +1,13 @@
 {
-  "ostatnia_aktualizacja": "2026-08-10 16:02:07",
-  "suma_wolnych": 35,
+  "ostatnia_aktualizacja": "2026-08-10 16:02:47",
+  "suma_wolnych": 6152,
   "sektory": {
+    "do": 15,
+    "2026": 23,
+    "sezon": 2026,
+    "jesienną": 2026,
+    "Warszawa": 2026,
+    "Strona": 1,
     "Ptaszyckiego": 4,
     "a": 31
   }

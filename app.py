@@ -34,7 +34,7 @@ st.markdown("""
     ">
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
             <img src="https://raw.githubusercontent.com/HKS1950/licznikbiletow/main/logo.png" width="42" style="vertical-align: middle;">
-            <span style="font-size: 24px; font-weight: 800; color: #0056b3;">Hutnik Kraków vs Legia II Warszawa</span>
+            <span style="font-size: 24px; font-weight: 800; color: #0056b3;">Hutnik Kraków vs Stal Stalowa Wola</span>
         </div>
         <div style="font-size: 16px; color: #555555; font-weight: 500;">
             🗓️ Sobota, 29 sierpnia 2026 r. | ⏰ godz. 17:00

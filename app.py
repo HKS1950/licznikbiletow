@@ -37,7 +37,7 @@ st.markdown("""
             <span style="font-size: 24px; font-weight: 800; color: #0056b3;">Hutnik Kraków vs Legia II Warszawa</span>
         </div>
         <div style="font-size: 16px; color: #555555; font-weight: 500;">
-            🗓️ Niedziela, 16 sierpnia 2026 r. | ⏰ godz. 16:00
+            🗓️ Sobota, 29 sierpnia 2026 r. | ⏰ godz. 17:00
         </div>
     </div>
 """, unsafe_allow_html=True)
